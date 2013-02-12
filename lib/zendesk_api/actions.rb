@@ -54,8 +54,14 @@ module ZendeskAPI
         association_name = association_data[:name]
         next unless send("#{association_name}_used?") && association = send(association_name)
 
+
         inline_creation = association_data[:inline] == :create && new_record?
-        changed = association.is_a?(Collection) || !association.changes.empty?
+        # objects do not reliably return true to respond_to?(:changes)
+        changed = begin
+          association.is_a?(Collection) || !association.changes.empty?
+        rescue NoMethodError
+          false
+        end
 
         if association.respond_to?(:save) && changed && !inline_creation && association.save
           self.send("#{association_name}=", association) # set id/ids columns
